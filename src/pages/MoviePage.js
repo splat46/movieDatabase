@@ -1,39 +1,38 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
-import Axios from "axios";
+import axios from "axios";
 
 export default function MoviePage() {
+  // ...
   const params = useParams();
-  console.log("What are param", params.id);
+  const [movieData, set_movieData] = useState();
 
-  const [movieData, set_movieData] = useState({});
+  useEffect(() => {
+    async function fetchData() {
+      const queryParam = params.imdb_id;
+      const url = `https://omdbapi.com/?i=${queryParam}&apikey=7a19119e`;
 
-  const fetchData = async () => {
-    const response = await Axios.get(
-      `http://www.omdbapi.com/?i=${params.id}&apikey=7a19119e`
-    ); //making request
-    console.log("response", response.data);
-    set_movieData(response.data);
-  };
+      const data = await axios.get(url);
 
-  return (
-    <section>
-      <div className="container">
-        <div className="row">
-          <div className="col-md-4">
-            <img src={movieData.Poster} />
-          </div>
-          <div className="col-md-8">
-            <h1>{movieData.Title}</h1>
-            Genre:{" "}
-            <span className="badge badge-primary">{movieData.Genre}</span>
-            <p>Language: {movieData.Language}</p>
-            <p>Duration: {movieData.Runtime}</p>
-            <p>{movieData.Title}</p>
-          </div>
+      set_movieData(data.data);
+    }
+    fetchData();
+  }, [params.imdb_id]);
+  const data = getMovieData(movieData);
+
+  function getMovieData(data) {
+    if (data) {
+      return (
+        <div>
+          <h1>{data.Title}</h1>
+          <p>Released in {data.Released}</p>
+          <p>{data.Genre}</p>
+          <img src={data.Poster} />
+          <p>Directed by:{data.Director}</p>
+          <p>{data.Plot}</p>
         </div>
-      </div>
-    </section>
-  );
+      );
+    }
+  }
+  return <div>{data}</div>;
 }

@@ -1,71 +1,82 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { NavLink, useParams, useHistory } from "react-router-dom";
+import MovieCard from "../components/MovieCard/MovieCard";
+import { useHistory, NavLink, useParams } from "react-router-dom";
 
 export default function DiscoverMoviesPage() {
   const [searchText, set_searchText] = useState("");
-  const [searchState, set_searchState] = useState("Search for movies");
-  const [movies, set_movies] = useState([]); // data fetched will be set in this array
+  const [status, set_status] = useState({ status: "idle" });
   const params = useParams();
-
   const history = useHistory();
 
-  const search = async () => {
-    console.log("Start searching for:", searchText);
+  const navigateToSearch = () => {
+    const routeParam = encodeURIComponent(searchText);
+    history.push(`/discover/${routeParam}`);
+  };
 
-    set_searchState("Searching..."); // Status of searching
+  console.log("searchText", searchText);
+  console.log("params.searchtext", params.searchtext);
+
+  const search = async () => {
+    set_status({ status: "searching" });
+
+    const queryParam = encodeURIComponent(params.searchtext);
 
     const data = await axios.get(
-      // Fetch data with and await
-      `http://www.omdbapi.com/?s=${params.search}&apikey=7a19119e`
+      `http://www.omdbapi.com/?s=${queryParam}&apikey=7a19119e`
     );
 
-    set_movies(data.data.Search); // assigned the data to set_movies
-    console.log(data.data.Search);
-    set_searchState("Done"); // While finished searching show message done
+    set_status({ status: "done", data: data.data.Search });
   };
 
   useEffect(() => {
     search();
-  }, []);
+  }, [params.searchtext]);
 
-  const newSearchFunctionInAddressBar = () => {
-    const queryParam = encodeURIComponent(searchText); // Making sure will be a good url without spaces or chars
-    history.push(`/discover/${queryParam}`);
-  };
+  const message = getMessage(status);
+  const data = getData(status);
 
-  // mapping over all the movies and make a list for title and year
-  const displayMovies = movies.map((movieCard) => {
-    return (
-      <NavLink
-        className="col-md-4"
-        key={movieCard.imdbID}
-        to={`/discover/${movieCard.imdbID}`}
-      >
-        <div className="card">
-          <img src={movieCard.Poster} alt="" />
-          <div className="card-body">
-            <p>{movieCard.Title}</p>
-            <p>{movieCard.Year}</p>
+  function getMessage(status) {
+    if (status.status === "done") {
+      return "Done:\n";
+    } else if (status.status === "searching") {
+      return "Searching for your data...";
+    } else {
+      return "";
+    }
+  }
+
+  function getData(status) {
+    if (status.data) {
+      return status.data.map((movie, id) => {
+        return (
+          <div className="col-3" key={id + 1}>
+            <MovieCard
+              title={movie.Title}
+              poster={movie.Poster}
+              imdbID={movie.imdbID}
+            />
           </div>
-        </div>
-      </NavLink>
-    );
-  });
+        );
+      });
+    }
+  }
 
   return (
     <div>
       <h1>Discover some movies!</h1>
-      <h3>{searchState}</h3>
+      <h2>{message}</h2>
       <p>
         <input
           value={searchText}
-          onChange={(e) => set_searchText(e.target.value)} // search for changes and takes the text to a value
+          onChange={(e) => set_searchText(e.target.value)}
         />
-        <button onClick={newSearchFunctionInAddressBar}>Search</button>
+        <button className="btn btn-primary" onClick={navigateToSearch}>
+          Search
+        </button>
       </p>
       <div className="container">
-        <div className="row">{displayMovies}</div>
+        <div className="row">{data}</div>
       </div>
     </div>
   );
