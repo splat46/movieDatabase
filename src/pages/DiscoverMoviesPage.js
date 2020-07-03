@@ -1,34 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { NavLink, useParams, useHistory } from "react-router-dom";
 
 export default function DiscoverMoviesPage() {
   const [searchText, set_searchText] = useState("");
   const [searchState, set_searchState] = useState("Search for movies");
+  const [movies, set_movies] = useState([]); // data fetched will be set in this array
+  const params = useParams();
 
-  // data fetched will be set in this array
-  const [movies, set_movies] = useState([]);
+  const history = useHistory();
 
   const search = async () => {
     console.log("Start searching for:", searchText);
 
-    const queryParam = encodeURIComponent(searchText);
+    set_searchState("Searching..."); // Status of searching
 
-    // While searching show message searching...
-    set_searchState("Searching...");
-
-    // Fetch data with Axios
     const data = await axios.get(
-      `http://www.omdbapi.com/?s=${queryParam}&apikey=7a19119e`
+      // Fetch data with and await
+      `http://www.omdbapi.com/?s=${params.search}&apikey=7a19119e`
     );
 
-    // assigned the data to set_movies
-    set_movies(data.Search);
-
+    set_movies(data.data.Search); // assigned the data to set_movies
     console.log(data.data.Search);
-
-    // While finished searching show message done
-    set_searchState("Done", data);
+    set_searchState("Done"); // While finished searching show message done
   };
+
+  useEffect(() => {
+    search();
+  }, []);
+
+  const newSearchFunctionInAddressBar = () => {
+    const queryParam = encodeURIComponent(searchText); // Making sure will be a good url without spaces or chars
+    history.push(`/discover/${queryParam}`);
+  };
+
+  // mapping over all the movies and make a list for title and year
+  const displayMovies = movies.map((movieCard) => {
+    return (
+      <NavLink
+        className="col-md-4"
+        key={movieCard.imdbID}
+        to={`/discover/${movieCard.imdbID}`}
+      >
+        <div className="card">
+          <img src={movieCard.Poster} alt="" />
+          <div className="card-body">
+            <p>{movieCard.Title}</p>
+            <p>{movieCard.Year}</p>
+          </div>
+        </div>
+      </NavLink>
+    );
+  });
 
   return (
     <div>
@@ -37,10 +60,13 @@ export default function DiscoverMoviesPage() {
       <p>
         <input
           value={searchText}
-          onChange={(e) => set_searchText(e.target.value)}
+          onChange={(e) => set_searchText(e.target.value)} // search for changes and takes the text to a value
         />
-        <button onClick={search}>Search</button>
+        <button onClick={newSearchFunctionInAddressBar}>Search</button>
       </p>
+      <div className="container">
+        <div className="row">{displayMovies}</div>
+      </div>
     </div>
   );
 }
